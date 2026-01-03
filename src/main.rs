@@ -3,7 +3,7 @@ use std::fs;
 use std::fs::File as StdFile;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-// use std::time::Instant;
+use std::time::Instant;
 
 #[derive(Deserialize, Debug)]
 pub struct Actor {
@@ -32,15 +32,31 @@ pub struct Org {
 }
 
 #[derive(Deserialize, Debug)]
+pub enum EventType {
+    PushEvent,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct GitHubEvent {
     pub id: String,
-    pub r#type: String,
+    pub r#type: EventType, // extract only PushEvent
     pub actor: Actor,
     pub repo: Repo,
     pub payload: serde_json::Value, // use Value since the structure cannot be determined.
     pub public: bool,
     pub created_at: String,
     pub org: Option<Org>, // Org might be missing.
+}
+#[derive(Deserialize, Debug)]
+pub struct GitHubPayload {
+    // TODO: add fields once the GitHub webhook schema is known.
+}
+
+#[derive(Deserialize)]
+struct RawEvent {
+    #[allow(dead_code)]
+    pub id: String,
+    pub r#type: String,
 }
 
 pub fn check_folder(folder_path: &str) -> Result<(), String> {
@@ -95,26 +111,37 @@ pub fn receive_all(file_path: &str) -> Result<Vec<GitHubEvent>, String> {
             continue;
         }
 
-        let event: GitHubEvent = serde_json::from_str(&line)
+        // First check if it's a PushEvent
+        let raw: RawEvent = serde_json::from_str(&line)
             .map_err(|err| format!("Error at line {}: {}", index + 1, err))?;
 
-        // println!("Event: {} by {}", event.r#type, event.actor.login);
+        if raw.r#type != "PushEvent" {
+            continue;
+        }
+
+        // Now deserialize as full PushEvent
+        let event: GitHubEvent = serde_json::from_str(&line).map_err(|err| {
+            format!(
+                "Error deserializing PushEvent at line {}: {}",
+                index + 1,
+                err
+            )
+        })?;
 
         results.push(event);
     }
 
     Ok(results)
 }
-
 fn main() {
-    let path_to_data = "etl_data";
+    let path_to_data = "/Users/pacuk/etl_data";
 
-    // let start = Instant::now();
+    let start = Instant::now();
 
     if let Err(e) = check_folder(path_to_data) {
         eprintln!("Fatal error: {}", e);
     }
 
-    // let elapsed = start.elapsed();
-    // println!("⏱️ Time: {:.2?}", elapsed);
+    let elapsed = start.elapsed();
+    println!("⏱️ Time: {:.2?}", elapsed);
 }
