@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Actor {
     pub id: u64,
@@ -9,14 +10,14 @@ pub struct Actor {
     pub url: String,
     pub avatar_url: String,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Repo {
     pub id: u64,
     pub name: String,
     pub url: String,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Org {
     pub id: u64,
@@ -46,7 +47,7 @@ pub enum EventType {
     CommitCommentEvent,
     DiscussionEvent,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct PullRequest {
     pub url: Option<String>,
@@ -55,7 +56,7 @@ pub struct PullRequest {
     pub head: Option<serde_json::Value>,
     pub base: Option<serde_json::Value>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Issue {
     pub url: Option<String>,
@@ -69,7 +70,7 @@ pub struct Issue {
     pub assignees: Option<Vec<serde_json::Value>>,
     pub labels: Option<Vec<serde_json::Value>>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Comment {
     pub url: Option<String>,
@@ -79,7 +80,7 @@ pub struct Comment {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Review {
     pub id: Option<u64>,
@@ -88,7 +89,7 @@ pub struct Review {
     pub state: Option<String>,
     pub submitted_at: Option<String>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Release {
     pub id: Option<u64>,
@@ -99,7 +100,7 @@ pub struct Release {
     pub prerelease: Option<bool>,
     pub created_at: Option<String>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Forkee {
     pub id: Option<u64>,
@@ -109,7 +110,7 @@ pub struct Forkee {
     pub description: Option<String>,
     pub url: Option<String>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Label {
     pub id: Option<u64>,
@@ -117,7 +118,7 @@ pub struct Label {
     pub color: Option<String>,
     pub default: Option<bool>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GitHubPayload {
     pub action: Option<String>,
@@ -132,8 +133,6 @@ pub struct GitHubPayload {
     pub head: Option<String>,
     pub before: Option<String>,
     pub number: Option<u32>,
-
-    // Связанные объекты
     pub pull_request: Option<PullRequest>,
     pub issue: Option<Issue>,
     pub comment: Option<Comment>,
@@ -148,7 +147,7 @@ pub struct GitHubPayload {
     pub pages: Option<Vec<serde_json::Value>>,
     pub discussion: Option<serde_json::Value>,
 }
-
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GitHubEvent {
     pub id: String,
