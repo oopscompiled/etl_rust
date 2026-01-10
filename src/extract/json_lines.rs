@@ -3,8 +3,11 @@ use std::fs;
 use std::fs::File as StdFile;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+use std::time::Instant;
 
-pub fn check_folder(folder_path: &str) -> Result<(), String> {
+pub fn check_folder(folder_path: &str, dry_run: bool) -> Result<(), String> {
+    let start_total = Instant::now();
+
     let entries = fs::read_dir(folder_path)
         .map_err(|e| format!("Unable to read folder {}: {}", folder_path, e))?;
 
@@ -25,18 +28,41 @@ pub fn check_folder(folder_path: &str) -> Result<(), String> {
             .unwrap_or(0)
     });
 
-    for path in files {
-        println!(
-            "File processing: {:?}",
-            path.file_name().unwrap_or_default()
-        );
-        if let Some(path_str) = path.to_str() {
-            match receive_all(path_str) {
-                Ok(events) => println!(" -> Success: {} events", events.len()),
-                Err(e) => eprintln!(" -> Error in file {:?}: {}", path, e),
+    let mut total_lines = 0usize;
+    let total_files = files.len();
+
+    for path in &files {
+        let file_name = path.file_name().unwrap_or_default();
+
+        if dry_run {
+            let line_count = fs::read_to_string(path)
+                .map(|s| s.lines().count())
+                .unwrap_or(0);
+            total_lines += line_count;
+            println!(
+                "[Dry-run]: Would process file: {:?}, {} lines",
+                file_name, line_count
+            );
+        } else {
+            println!("File processing: {:?}", file_name);
+            if let Some(path_str) = path.to_str() {
+                match receive_all(path_str) {
+                    Ok(events) => {
+                        println!(" -> Success: {} events", events.len());
+                        total_lines += events.len();
+                    }
+                    Err(e) => eprintln!(" -> Error in file {:?}: {}", file_name, e),
+                }
             }
         }
     }
+
+    println!("-------------------------------------------------");
+    println!("Summary:");
+    println!("Total files: {}", total_files);
+    println!("Total lines/events: {}", total_lines);
+    println!("Total time: {:.2?}", start_total.elapsed());
+
     Ok(())
 }
 
