@@ -1,18 +1,31 @@
+use clap::Parser;
+use etl_rust::{Config, run};
 use std::time::Instant;
-mod model;
-mod extract {
-    pub mod json_lines;
+
+#[derive(Parser)]
+#[command(version, about = "ETL tool for processing JSON lines")]
+struct Cli {
+    #[arg(short, long)]
+    path: String,
 }
-use crate::extract::json_lines::check_folder;
 
 fn main() {
-    let path_to_data = "/Users/pacuk/etl_data";
+    // 1. Парсинг аргументов
+    let cli = Cli::parse();
+    println!("PATH = {:?}", cli.path);
+
+    // 2. Превращение аргументов CLI в конфигурацию библиотеки
+    let config = Config {
+        path_to_data: cli.path,
+    };
+
     let start = Instant::now();
 
-    if let Err(e) = check_folder(path_to_data) {
+    // 3. Запуск логики
+    if let Err(e) = run(config) {
         eprintln!("Fatal error: {}", e);
+        std::process::exit(1);
     }
 
-    let elapsed = start.elapsed();
-    println!("⏱️ Time: {:.2?}", elapsed);
+    println!("⏱️ Time: {:.2?}", start.elapsed());
 }
