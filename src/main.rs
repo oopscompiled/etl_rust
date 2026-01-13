@@ -7,22 +7,29 @@ use std::time::Instant;
 struct Cli {
     #[arg(short, long)]
     path: String,
+
     #[arg(short, long)]
     show_time: bool,
+
     #[arg(long)]
     dry_run: bool,
+
+    #[arg(
+        long,
+        help = "Filter by event type (e.g., PushEvent, PullRequestEvent)"
+    )]
+    event_type: Option<String>,
 }
 
 fn main() {
     let cli = Cli::parse();
-
     let config = Config {
         path_to_data: cli.path,
         dry_run: cli.dry_run,
+        event_type_filter: cli.event_type,
     };
 
     let start = Instant::now();
-
     if let Err(e) = run(config) {
         eprintln!("Fatal error: {}", e);
         std::process::exit(1);

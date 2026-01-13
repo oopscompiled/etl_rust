@@ -1,3 +1,4 @@
+// extract/json_lines.rs
 use crate::model::github::GitHubEvent;
 use std::fs;
 use std::fs::File as StdFile;
@@ -5,9 +6,43 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::time::Instant;
 
-pub fn check_folder(folder_path: &str, dry_run: bool) -> Result<(), String> {
-    let start_total = Instant::now();
+fn is_valid_event_type(event_type_str: &str) -> bool {
+    matches!(
+        event_type_str,
+        "PushEvent"
+            | "PullRequestEvent"
+            | "PullRequestReviewEvent"
+            | "PullRequestReviewCommentEvent"
+            | "CreateEvent"
+            | "DeleteEvent"
+            | "IssuesEvent"
+            | "IssueCommentEvent"
+            | "WatchEvent"
+            | "ForkEvent"
+            | "ReleaseEvent"
+            | "GollumEvent"
+            | "MemberEvent"
+            | "PublicEvent"
+            | "CommitCommentEvent"
+            | "DiscussionEvent"
+    )
+}
 
+pub fn check_folder(
+    folder_path: &str,
+    dry_run: bool,
+    event_filter: Option<String>,
+) -> Result<(), String> {
+    if let Some(ref filter) = event_filter {
+        if !is_valid_event_type(filter) {
+            return Err(format!(
+                "Invalid event type: '{}'. Valid types are: PushEvent, PullRequestEvent, PullRequestReviewEvent, PullRequestReviewCommentEvent, CreateEvent, DeleteEvent, IssuesEvent, IssueCommentEvent, WatchEvent, ForkEvent, ReleaseEvent, GollumEvent, MemberEvent, PublicEvent, CommitCommentEvent, DiscussionEvent",
+                filter
+            ));
+        }
+    }
+
+    let start_total = Instant::now();
     let entries = fs::read_dir(folder_path)
         .map_err(|e| format!("Unable to read folder {}: {}", folder_path, e))?;
 
@@ -33,7 +68,6 @@ pub fn check_folder(folder_path: &str, dry_run: bool) -> Result<(), String> {
 
     for path in &files {
         let file_name = path.file_name().unwrap_or_default();
-
         if dry_run {
             let line_count = fs::read_to_string(path)
                 .map(|s| s.lines().count())
@@ -46,7 +80,7 @@ pub fn check_folder(folder_path: &str, dry_run: bool) -> Result<(), String> {
         } else {
             println!("File processing: {:?}", file_name);
             if let Some(path_str) = path.to_str() {
-                match receive_all(path_str) {
+                match receive_all(path_str, event_filter.clone()) {
                     Ok(events) => {
                         println!(" -> Success: {} events", events.len());
                         total_lines += events.len();
@@ -61,12 +95,17 @@ pub fn check_folder(folder_path: &str, dry_run: bool) -> Result<(), String> {
     println!("Summary:");
     println!("Total files: {}", total_files);
     println!("Total lines/events: {}", total_lines);
+    if let Some(ref filter) = event_filter {
+        println!("Filter applied: {}", filter);
+    }
     println!("Total time: {:.2?}", start_total.elapsed());
-
     Ok(())
 }
 
-pub fn receive_all(file_path: &str) -> Result<Vec<GitHubEvent>, String> {
+pub fn receive_all(
+    file_path: &str,
+    event_filter: Option<String>,
+) -> Result<Vec<GitHubEvent>, String> {
     let file = StdFile::open(file_path).map_err(|e| e.to_string())?;
     let reader = BufReader::new(file);
     let mut results = Vec::new();
@@ -78,12 +117,26 @@ pub fn receive_all(file_path: &str) -> Result<Vec<GitHubEvent>, String> {
         }
 
         match serde_json::from_str::<GitHubEvent>(&line) {
-            Ok(event) => results.push(event),
+            Ok(event) => {
+                // Apply filter if specified
+                if should_include(&event, &event_filter) {
+                    results.push(event);
+                }
+            }
             Err(err) => {
                 eprintln!("Warning at line {}: {}", index + 1, err);
             }
         }
     }
-
     Ok(results)
+}
+
+fn should_include(event: &GitHubEvent, filter: &Option<String>) -> bool {
+    match filter {
+        None => true, // No filter, include all
+        Some(filter_str) => {
+            let event_type_str = format!("{:?}", event.event_type);
+            event_type_str == *filter_str
+        }
+    }
 }
