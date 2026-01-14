@@ -1,3 +1,4 @@
+// main.rs
 use clap::Parser;
 use etl_rust::{Config, run};
 use std::time::Instant;
@@ -19,6 +20,9 @@ struct Cli {
         help = "Filter by event type (e.g., PushEvent, PullRequestEvent)"
     )]
     event_type: Option<String>,
+
+    #[arg(short, long, help = "Output file path for results")]
+    output: Option<String>,
 }
 
 fn main() {
@@ -27,6 +31,7 @@ fn main() {
         path_to_data: cli.path,
         dry_run: cli.dry_run,
         event_type_filter: cli.event_type,
+        output_file: cli.output,
     };
 
     let start = Instant::now();

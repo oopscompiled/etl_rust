@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Actor {
     pub id: u64,
     pub login: String,
@@ -11,14 +11,14 @@ pub struct Actor {
     pub avatar_url: String,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Repo {
     pub id: u64,
     pub name: String,
     pub url: String,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Org {
     pub id: u64,
     pub login: String,
@@ -27,7 +27,7 @@ pub struct Org {
     pub avatar_url: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub enum EventType {
     PushEvent,
@@ -48,7 +48,7 @@ pub enum EventType {
     DiscussionEvent,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct PullRequest {
     pub url: Option<String>,
     pub id: Option<u64>,
@@ -57,7 +57,7 @@ pub struct PullRequest {
     pub base: Option<serde_json::Value>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Issue {
     pub url: Option<String>,
     pub id: Option<u64>,
@@ -71,7 +71,7 @@ pub struct Issue {
     pub labels: Option<Vec<serde_json::Value>>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Comment {
     pub url: Option<String>,
     pub id: Option<u64>,
@@ -81,7 +81,7 @@ pub struct Comment {
     pub updated_at: Option<String>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Review {
     pub id: Option<u64>,
     pub user: Option<serde_json::Value>,
@@ -90,7 +90,7 @@ pub struct Review {
     pub submitted_at: Option<String>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Release {
     pub id: Option<u64>,
     pub tag_name: Option<String>,
@@ -101,7 +101,7 @@ pub struct Release {
     pub created_at: Option<String>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Forkee {
     pub id: Option<u64>,
     pub name: Option<String>,
@@ -111,7 +111,7 @@ pub struct Forkee {
     pub url: Option<String>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Label {
     pub id: Option<u64>,
     pub name: Option<String>,
@@ -119,7 +119,7 @@ pub struct Label {
     pub default: Option<bool>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct GitHubPayload {
     pub action: Option<String>,
     pub ref_type: Option<String>,
@@ -148,7 +148,7 @@ pub struct GitHubPayload {
     pub discussion: Option<serde_json::Value>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct GitHubEvent {
     pub id: String,
     #[serde(rename = "type")]

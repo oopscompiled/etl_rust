@@ -2,6 +2,8 @@
 use crate::model::github::GitHubEvent;
 use std::fs;
 use std::fs::File as StdFile;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::time::Instant;
@@ -32,8 +34,9 @@ pub fn check_folder(
     folder_path: &str,
     dry_run: bool,
     event_filter: Option<String>,
+    output_file: Option<String>,
 ) -> Result<(), String> {
-    if let Some(ref filter) = event_filter {
+    if let Some(filter) = &event_filter {
         if !is_valid_event_type(filter) {
             return Err(format!(
                 "Invalid event type: '{}'. Valid types are: PushEvent, PullRequestEvent, PullRequestReviewEvent, PullRequestReviewCommentEvent, CreateEvent, DeleteEvent, IssuesEvent, IssueCommentEvent, WatchEvent, ForkEvent, ReleaseEvent, GollumEvent, MemberEvent, PublicEvent, CommitCommentEvent, DiscussionEvent",
@@ -63,6 +66,11 @@ pub fn check_folder(
             .unwrap_or(0)
     });
 
+    // Clear output file if it exists (start fresh)
+    if let Some(output) = &output_file {
+        fs::write(output, "").map_err(|e| format!("Failed to create output file: {}", e))?;
+    }
+
     let mut total_lines = 0usize;
     let total_files = files.len();
 
@@ -84,6 +92,13 @@ pub fn check_folder(
                     Ok(events) => {
                         println!(" -> Success: {} events", events.len());
                         total_lines += events.len();
+
+                        // Save events if output file is specified
+                        if let Some(output) = &output_file {
+                            if let Err(e) = save_events(&events, output) {
+                                eprintln!("Warning: Failed to save events to {}: {}", output, e);
+                            }
+                        }
                     }
                     Err(e) => eprintln!(" -> Error in file {:?}: {}", file_name, e),
                 }
@@ -97,6 +112,9 @@ pub fn check_folder(
     println!("Total lines/events: {}", total_lines);
     if let Some(ref filter) = event_filter {
         println!("Filter applied: {}", filter);
+    }
+    if let Some(ref output) = output_file {
+        println!("Output saved to: {}", output);
     }
     println!("Total time: {:.2?}", start_total.elapsed());
     Ok(())
@@ -118,7 +136,6 @@ pub fn receive_all(
 
         match serde_json::from_str::<GitHubEvent>(&line) {
             Ok(event) => {
-                // Apply filter if specified
                 if should_include(&event, &event_filter) {
                     results.push(event);
                 }
@@ -133,10 +150,25 @@ pub fn receive_all(
 
 fn should_include(event: &GitHubEvent, filter: &Option<String>) -> bool {
     match filter {
-        None => true, // No filter, include all
+        None => true,
         Some(filter_str) => {
             let event_type_str = format!("{:?}", event.event_type);
             event_type_str == *filter_str
         }
     }
+}
+
+fn save_events(events: &[GitHubEvent], output_path: &str) -> Result<(), String> {
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(output_path)
+        .map_err(|e| format!("Failed to open output file: {}", e))?;
+
+    for event in events {
+        let json_line = serde_json::to_string(event)
+            .map_err(|e| format!("Failed to serialize event: {}", e))?;
+        writeln!(file, "{}", json_line).map_err(|e| format!("Failed to write to file: {}", e))?;
+    }
+
+    Ok(())
 }

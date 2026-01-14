@@ -12,6 +12,7 @@ mod tests {
             path_to_data: "/non/existent/path".into(),
             dry_run: false,
             event_type_filter: None,
+            output_file: None,
         };
         let err = run(config).unwrap_err();
         assert!(err.contains("Unable to read folder"));
@@ -24,6 +25,7 @@ mod tests {
             path_to_data: tmp_dir.path().to_str().unwrap().to_string(),
             dry_run: false,
             event_type_filter: None,
+            output_file: None,
         };
         assert!(run(config).is_ok());
     }
@@ -36,6 +38,7 @@ mod tests {
             path_to_data: tmp_dir.path().to_str().unwrap().to_string(),
             dry_run: false,
             event_type_filter: None,
+            output_file: None,
         };
         assert!(run(config).is_ok());
     }
@@ -54,6 +57,7 @@ mod tests {
             path_to_data: tmp_dir.path().to_str().unwrap().to_string(),
             dry_run: false,
             event_type_filter: None,
+            output_file: None,
         };
         assert!(run(config).is_ok());
     }
@@ -66,6 +70,7 @@ mod tests {
             path_to_data: tmp_dir.path().to_str().unwrap().to_string(),
             dry_run: false,
             event_type_filter: None,
+            output_file: None,
         };
         assert!(run(config).is_ok());
     }
@@ -84,6 +89,7 @@ mod tests {
             path_to_data: tmp_dir.path().to_str().unwrap().to_string(),
             dry_run: false,
             event_type_filter: None,
+            output_file: None,
         };
         assert!(run(config).is_ok());
     }
@@ -96,6 +102,7 @@ mod tests {
             path_to_data: tmp_dir.path().to_str().unwrap().to_string(),
             dry_run: false,
             event_type_filter: Some("PushEvent".to_string()),
+            output_file: None,
         };
         assert!(run(config).is_ok());
     }
