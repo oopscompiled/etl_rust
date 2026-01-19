@@ -1,3 +1,9 @@
+> ⚠️ **Work in Progress**
+>
+> This project is still under active development.  
+> APIs, CLI interface, and internal architecture may change at any time.  
+> Not ready for production use yet.
+
 # ETL CLI on Rust
 
 A simple **ETL (Extract, Transform, Load) CLI tool written in Rust**.
