@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Actor {
     pub id: u64,
     pub login: String,
@@ -11,14 +11,14 @@ pub struct Actor {
     pub avatar_url: String,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Repo {
     pub id: u64,
     pub name: String,
     pub url: String,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Org {
     pub id: u64,
     pub login: String,
@@ -27,7 +27,7 @@ pub struct Org {
     pub avatar_url: String,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub enum EventType {
     PushEvent,
@@ -119,7 +119,7 @@ pub struct Label {
     pub default: Option<bool>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GitHubPayload {
     pub action: Option<String>,
     pub ref_type: Option<String>,
@@ -148,7 +148,7 @@ pub struct GitHubPayload {
     pub discussion: Option<serde_json::Value>,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GitHubEvent {
     pub id: String,
     #[serde(rename = "type")]

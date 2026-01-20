@@ -1,10 +1,12 @@
 // extract/json_lines.rs
 use crate::extract::filters::{is_valid_event_type, save_events, should_include};
 use crate::model::github::GitHubEvent;
+use rayon::prelude::*;
 use std::fs;
 use std::fs::File as StdFile;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::Instant;
 
 pub fn check_folder(
@@ -48,12 +50,12 @@ pub fn check_folder(
         fs::write(output, "").map_err(|e| format!("Failed to create output file: {}", e))?;
     }
 
-    let mut total_lines = 0usize;
     let total_files = files.len();
 
-    for path in &files {
-        let file_name = path.file_name().unwrap_or_default();
-        if dry_run {
+    if dry_run {
+        let mut total_lines = 0usize;
+        for path in &files {
+            let file_name = path.file_name().unwrap_or_default();
             let line_count = fs::read_to_string(path)
                 .map(|s| s.lines().count())
                 .unwrap_or(0);
@@ -62,39 +64,64 @@ pub fn check_folder(
                 "[Dry-run]: Would process file: {:?}, {} lines",
                 file_name, line_count
             );
-        } else {
+        }
+        println!("-------------------------------------------------");
+        println!("Summary:");
+        println!("Total files: {}", total_files);
+        println!("Total lines/events: {}", total_lines);
+        if let Some(ref filter) = event_filter {
+            println!("Filter applied: {}", filter);
+        }
+        println!("Total time: {:.2?}", start_total.elapsed());
+        Ok(())
+    } else {
+        // Parallel processing with shared state
+        let results_mutex = Mutex::new(Vec::new());
+
+        files.par_iter().for_each(|path| {
+            let file_name = path.file_name().unwrap_or_default();
             println!("File processing: {:?}", file_name);
+
             if let Some(path_str) = path.to_str() {
                 match receive_all(path_str, event_filter.clone()) {
                     Ok(events) => {
                         println!(" -> Success: {} events", events.len());
-                        total_lines += events.len();
-
-                        // Save events if output file is specified
-                        if let Some(output) = &output_file {
-                            if let Err(e) = save_events(&events, output) {
-                                eprintln!("Warning: Failed to save events to {}: {}", output, e);
-                            }
+                        if let Ok(mut results) = results_mutex.lock() {
+                            results.extend(events);
                         }
                     }
                     Err(e) => eprintln!(" -> Error in file {:?}: {}", file_name, e),
                 }
             }
-        }
-    }
+        });
 
-    println!("-------------------------------------------------");
-    println!("Summary:");
-    println!("Total files: {}", total_files);
-    println!("Total lines/events: {}", total_lines);
-    if let Some(ref filter) = event_filter {
-        println!("Filter applied: {}", filter);
+        let all_events = results_mutex
+            .lock()
+            .map_err(|e| format!("Failed to lock results: {}", e))?
+            .clone();
+
+        let total_lines = all_events.len();
+
+        // Save events if output file is specified
+        if let Some(output) = &output_file {
+            if let Err(e) = save_events(&all_events, &output) {
+                eprintln!("Warning: Failed to save events to {}: {}", output, e);
+            }
+        }
+
+        println!("-------------------------------------------------");
+        println!("Summary:");
+        println!("Total files: {}", total_files);
+        println!("Total lines/events: {}", total_lines);
+        if let Some(ref filter) = event_filter {
+            println!("Filter applied: {}", filter);
+        }
+        if let Some(ref output) = output_file {
+            println!("Output saved to: {}", output);
+        }
+        println!("Total time: {:.2?}", start_total.elapsed());
+        Ok(())
     }
-    if let Some(ref output) = output_file {
-        println!("Output saved to: {}", output);
-    }
-    println!("Total time: {:.2?}", start_total.elapsed());
-    Ok(())
 }
 
 pub fn receive_all(
