@@ -3,8 +3,6 @@ use crate::extract::filters::{is_valid_event_type, save_events, should_include};
 use crate::model::github::GitHubEvent;
 use std::fs;
 use std::fs::File as StdFile;
-// use std::fs::OpenOptions;
-// use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::time::Instant;

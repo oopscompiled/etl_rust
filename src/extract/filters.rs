@@ -1,4 +1,4 @@
-use crate::model::github::GitHubEvent;
+use crate::model::github::{EventType, GitHubEvent};
 use std::fs::OpenOptions;
 use std::io::Write;
 
@@ -24,6 +24,27 @@ pub fn is_valid_event_type(event_type_str: &str) -> bool {
     )
 }
 
+fn event_type_to_str(event_type: &EventType) -> &'static str {
+    match event_type {
+        EventType::PushEvent => "PushEvent",
+        EventType::PullRequestEvent => "PullRequestEvent",
+        EventType::PullRequestReviewEvent => "PullRequestReviewEvent",
+        EventType::PullRequestReviewCommentEvent => "PullRequestReviewCommentEvent",
+        EventType::CreateEvent => "CreateEvent",
+        EventType::DeleteEvent => "DeleteEvent",
+        EventType::IssuesEvent => "IssuesEvent",
+        EventType::IssueCommentEvent => "IssueCommentEvent",
+        EventType::WatchEvent => "WatchEvent",
+        EventType::ForkEvent => "ForkEvent",
+        EventType::ReleaseEvent => "ReleaseEvent",
+        EventType::GollumEvent => "GollumEvent",
+        EventType::MemberEvent => "MemberEvent",
+        EventType::PublicEvent => "PublicEvent",
+        EventType::CommitCommentEvent => "CommitCommentEvent",
+        EventType::DiscussionEvent => "DiscussionEvent",
+    }
+}
+
 pub fn matches_actor_filter(actor_login: &str, filter: &str) -> bool {
     actor_login.eq_ignore_ascii_case(filter)
 }
@@ -31,10 +52,7 @@ pub fn matches_actor_filter(actor_login: &str, filter: &str) -> bool {
 pub fn should_include(event: &GitHubEvent, filter: &Option<String>) -> bool {
     match filter {
         None => true,
-        Some(filter_str) => {
-            let event_type_str = format!("{:?}", event.event_type);
-            event_type_str == *filter_str
-        }
+        Some(filter_str) => event_type_to_str(&event.event_type) == filter_str.as_str(),
     }
 }
 
