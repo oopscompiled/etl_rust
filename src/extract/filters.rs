@@ -1,5 +1,6 @@
 use crate::model::github::{EventType, GitHubEvent};
 use std::fs::OpenOptions;
+use std::io::BufWriter;
 use std::io::Write;
 
 pub fn is_valid_event_type(event_type_str: &str) -> bool {
@@ -57,15 +58,19 @@ pub fn should_include(event: &GitHubEvent, filter: &Option<String>) -> bool {
 }
 
 pub fn save_events(events: &[GitHubEvent], output_path: &str) -> Result<(), String> {
-    let mut file = OpenOptions::new()
+    let raw_file = OpenOptions::new()
         .append(true)
+        .create(true)
         .open(output_path)
         .map_err(|e| format!("Failed to open output file: {}", e))?;
+
+    let mut writer = BufWriter::new(raw_file);
 
     for event in events {
         let json_line = serde_json::to_string(event)
             .map_err(|e| format!("Failed to serialize event: {}", e))?;
-        writeln!(file, "{}", json_line).map_err(|e| format!("Failed to write to file: {}", e))?;
+
+        writeln!(writer, "{}", json_line).map_err(|e| format!("Failed to write to file: {}", e))?;
     }
 
     Ok(())

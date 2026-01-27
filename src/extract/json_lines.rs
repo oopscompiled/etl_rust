@@ -1,4 +1,3 @@
-// extract/json_lines.rs
 use crate::extract::filters::{is_valid_event_type, save_events, should_include};
 use crate::model::github::GitHubEvent;
 use rayon::prelude::*;
@@ -6,7 +5,6 @@ use std::fs;
 use std::fs::File as StdFile;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::Instant;
 
 pub fn check_folder(
@@ -40,7 +38,7 @@ pub fn check_folder(
     files.sort_by_key(|path| {
         path.file_stem()
             .and_then(|s| s.to_str())
-            .and_then(|s| s.split('-').last())
+            .and_then(|s| s.split('-').next_back())
             .and_then(|s| s.parse::<i32>().ok())
             .unwrap_or(0)
     });
@@ -75,36 +73,32 @@ pub fn check_folder(
         println!("Total time: {:.2?}", start_total.elapsed());
         Ok(())
     } else {
-        // Parallel processing with shared state
-        let results_mutex = Mutex::new(Vec::new());
+        // Используем par_iter для создания плоского списка событий без Mutex
+        let all_events: Vec<GitHubEvent> = files
+            .par_iter()
+            .filter_map(|path| {
+                let file_name = path.file_name().unwrap_or_default();
+                println!("File processing: {:?}", file_name);
 
-        files.par_iter().for_each(|path| {
-            let file_name = path.file_name().unwrap_or_default();
-            println!("File processing: {:?}", file_name);
-
-            if let Some(path_str) = path.to_str() {
+                let path_str = path.to_str()?;
                 match receive_all(path_str, event_filter.clone()) {
                     Ok(events) => {
                         println!(" -> Success: {} events", events.len());
-                        if let Ok(mut results) = results_mutex.lock() {
-                            results.extend(events);
-                        }
+                        Some(events) // Передаем вектор дальше
                     }
-                    Err(e) => eprintln!(" -> Error in file {:?}: {}", file_name, e),
+                    Err(e) => {
+                        eprintln!(" -> Error in file {:?}: {}", file_name, e);
+                        None // Пропускаем файл при ошибке
+                    }
                 }
-            }
-        });
-
-        let all_events = results_mutex
-            .lock()
-            .map_err(|e| format!("Failed to lock results: {}", e))?
-            .clone();
+            })
+            .flatten()
+            .collect();
 
         let total_lines = all_events.len();
 
-        // Save events if output file is specified
         if let Some(output) = &output_file {
-            if let Err(e) = save_events(&all_events, &output) {
+            if let Err(e) = save_events(&all_events, output) {
                 eprintln!("Warning: Failed to save events to {}: {}", output, e);
             }
         }
