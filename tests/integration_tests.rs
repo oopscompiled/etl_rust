@@ -13,6 +13,7 @@ mod tests {
             dry_run: false,
             event_type_filter: None,
             output_file: None,
+            show_stats: false,
         };
         let err = run(config).unwrap_err();
         assert!(err.contains("Unable to read folder"));
@@ -26,6 +27,7 @@ mod tests {
             dry_run: false,
             event_type_filter: None,
             output_file: None,
+            show_stats: false,
         };
         assert!(run(config).is_ok());
     }
@@ -39,6 +41,7 @@ mod tests {
             dry_run: false,
             event_type_filter: None,
             output_file: None,
+            show_stats: false,
         };
         assert!(run(config).is_ok());
     }
@@ -58,6 +61,7 @@ mod tests {
             dry_run: false,
             event_type_filter: None,
             output_file: None,
+            show_stats: false,
         };
         assert!(run(config).is_ok());
     }
@@ -71,6 +75,7 @@ mod tests {
             dry_run: false,
             event_type_filter: None,
             output_file: None,
+            show_stats: false,
         };
         assert!(run(config).is_ok());
     }
@@ -90,6 +95,7 @@ mod tests {
             dry_run: false,
             event_type_filter: None,
             output_file: None,
+            show_stats: false,
         };
         assert!(run(config).is_ok());
     }
@@ -103,6 +109,7 @@ mod tests {
             dry_run: false,
             event_type_filter: Some("PushEvent".to_string()),
             output_file: None,
+            show_stats: false,
         };
         assert!(run(config).is_ok());
     }

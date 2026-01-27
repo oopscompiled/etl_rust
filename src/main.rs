@@ -15,6 +15,9 @@ struct Cli {
     #[arg(long)]
     dry_run: bool,
 
+    #[arg(long, help = "Show event type analytics")]
+    stats: bool,
+
     #[arg(
         long,
         help = "Filter by event type (e.g., PushEvent, PullRequestEvent)"
@@ -30,6 +33,7 @@ fn main() {
     let config = Config {
         path_to_data: cli.path,
         dry_run: cli.dry_run,
+        show_stats: cli.stats,
         event_type_filter: cli.event_type,
         output_file: cli.output,
     };

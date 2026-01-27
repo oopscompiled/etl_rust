@@ -6,7 +6,7 @@ mod tests {
 
     #[test]
     fn test_check_folder_with_invalid_path() {
-        let result = check_folder("/non/existent/path", false, None, None);
+        let result = check_folder("/non/existent/path", false, false, None, None);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Unable to read folder"));
     }
@@ -14,7 +14,7 @@ mod tests {
     #[test]
     fn test_check_folder_with_empty_folder() {
         let tmp_dir = tempdir().unwrap();
-        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, None, None);
+        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, false, None, None);
         assert!(result.is_ok());
     }
 
@@ -27,7 +27,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, None, None);
+        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, false, None, None);
         assert!(result.is_ok());
     }
 
@@ -40,7 +40,7 @@ mod tests {
             fs::write(tmp_dir.path().join(format!("file-{}.json", i)), json_data).unwrap();
         }
 
-        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, None, None);
+        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, false, None, None);
         assert!(result.is_ok());
     }
 
@@ -51,6 +51,7 @@ mod tests {
 
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
+            false,
             false,
             Some("InvalidEventType".to_string()),
             None,
@@ -68,6 +69,7 @@ mod tests {
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
             false,
+            false,
             Some("PushEvent".to_string()),
             None,
         );
@@ -83,7 +85,7 @@ mod tests {
             fs::write(tmp_dir.path().join(format!("dry-{}.json", i)), json_data).unwrap();
         }
 
-        let result = check_folder(tmp_dir.path().to_str().unwrap(), true, None, None);
+        let result = check_folder(tmp_dir.path().to_str().unwrap(), true, false, None, None);
         assert!(result.is_ok());
     }
 
@@ -93,7 +95,7 @@ mod tests {
         fs::write(tmp_dir.path().join("file.txt"), "some text").unwrap();
         fs::write(tmp_dir.path().join("file.yaml"), "key: value").unwrap();
 
-        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, None, None);
+        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, false, None, None);
         assert!(result.is_ok());
     }
 
@@ -225,6 +227,7 @@ mod save_tests {
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
             false,
+            false,
             None,
             Some(output_file.to_str().unwrap().to_string()),
         );
@@ -252,6 +255,7 @@ mod save_tests {
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
             false,
+            false,
             Some("PushEvent".to_string()),
             Some(output_file.to_str().unwrap().to_string()),
         );
@@ -276,6 +280,7 @@ mod save_tests {
 
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
+            false,
             false,
             None,
             Some(output_file.to_str().unwrap().to_string()),
@@ -303,6 +308,7 @@ mod save_tests {
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
             false,
+            false,
             None,
             Some(output_file.to_str().unwrap().to_string()),
         );
@@ -322,7 +328,7 @@ mod save_tests {
         fs::write(tmp_dir.path().join("1.json"), json_data).unwrap();
 
         // Should work fine without output file being specified
-        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, None, None);
+        let result = check_folder(tmp_dir.path().to_str().unwrap(), false, false, None, None);
 
         assert!(result.is_ok());
     }
@@ -337,6 +343,7 @@ mod save_tests {
         let invalid_output = "/non/existent/dir/output.jsonl";
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
+            false,
             false,
             None,
             Some(invalid_output.to_string()),
@@ -354,6 +361,7 @@ mod save_tests {
         let output_file = tmp_dir.path().join("output.jsonl");
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
+            false,
             false,
             Some("PullRequestEvent".to_string()),
             Some(output_file.to_str().unwrap().to_string()),
@@ -378,6 +386,7 @@ mod save_tests {
         let output_file = tmp_dir.path().join("output.jsonl");
         let result = check_folder(
             tmp_dir.path().to_str().unwrap(),
+            false,
             false,
             None,
             Some(output_file.to_str().unwrap().to_string()),

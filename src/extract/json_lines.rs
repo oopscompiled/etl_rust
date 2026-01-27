@@ -1,3 +1,4 @@
+use crate::extract::analysis;
 use crate::extract::filters::{is_valid_event_type, save_events, should_include};
 use crate::model::github::GitHubEvent;
 use rayon::prelude::*;
@@ -10,6 +11,7 @@ use std::time::Instant;
 pub fn check_folder(
     folder_path: &str,
     dry_run: bool,
+    show_stats: bool,
     event_filter: Option<String>,
     output_file: Option<String>,
 ) -> Result<(), String> {
@@ -43,7 +45,6 @@ pub fn check_folder(
             .unwrap_or(0)
     });
 
-    // Clear output file if it exists (start fresh)
     if let Some(output) = &output_file {
         fs::write(output, "").map_err(|e| format!("Failed to create output file: {}", e))?;
     }
@@ -64,7 +65,7 @@ pub fn check_folder(
             );
         }
         println!("-------------------------------------------------");
-        println!("Summary:");
+        println!("Summary (Dry-run):");
         println!("Total files: {}", total_files);
         println!("Total lines/events: {}", total_lines);
         if let Some(ref filter) = event_filter {
@@ -73,7 +74,6 @@ pub fn check_folder(
         println!("Total time: {:.2?}", start_total.elapsed());
         Ok(())
     } else {
-        // Используем par_iter для создания плоского списка событий без Mutex
         let all_events: Vec<GitHubEvent> = files
             .par_iter()
             .filter_map(|path| {
@@ -84,11 +84,11 @@ pub fn check_folder(
                 match receive_all(path_str, event_filter.clone()) {
                     Ok(events) => {
                         println!(" -> Success: {} events", events.len());
-                        Some(events) // Передаем вектор дальше
+                        Some(events)
                     }
                     Err(e) => {
                         eprintln!(" -> Error in file {:?}: {}", file_name, e);
-                        None // Пропускаем файл при ошибке
+                        None
                     }
                 }
             })
@@ -96,6 +96,11 @@ pub fn check_folder(
             .collect();
 
         let total_lines = all_events.len();
+
+        if show_stats && !all_events.is_empty() {
+            let stats = analysis::count_events(&all_events);
+            analysis::print_stats(&stats);
+        }
 
         if let Some(output) = &output_file {
             if let Err(e) = save_events(&all_events, output) {
@@ -106,7 +111,7 @@ pub fn check_folder(
         println!("-------------------------------------------------");
         println!("Summary:");
         println!("Total files: {}", total_files);
-        println!("Total lines/events: {}", total_lines);
+        println!("Total events processed: {}", total_lines);
         if let Some(ref filter) = event_filter {
             println!("Filter applied: {}", filter);
         }
