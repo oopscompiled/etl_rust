@@ -7,6 +7,7 @@ pub struct Config {
     pub show_stats: bool,
     pub event_type_filter: Option<String>,
     pub output_file: Option<String>,
+    pub quiet_mode: bool,
 }
 
 pub fn run(config: Config) -> Result<(), String> {
@@ -16,5 +17,6 @@ pub fn run(config: Config) -> Result<(), String> {
         config.show_stats,
         config.event_type_filter,
         config.output_file,
+        config.quiet_mode,
     )
 }

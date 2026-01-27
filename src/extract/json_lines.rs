@@ -14,6 +14,7 @@ pub fn check_folder(
     show_stats: bool,
     event_filter: Option<String>,
     output_file: Option<String>,
+    quiet_mode: bool,
 ) -> Result<(), String> {
     if let Some(filter) = &event_filter {
         if !is_valid_event_type(filter) {
@@ -24,7 +25,7 @@ pub fn check_folder(
         }
     }
 
-    let start_total = Instant::now();
+    // let start_total = Instant::now();
     let entries = fs::read_dir(folder_path)
         .map_err(|e| format!("Unable to read folder {}: {}", folder_path, e))?;
 
@@ -49,77 +50,12 @@ pub fn check_folder(
         fs::write(output, "").map_err(|e| format!("Failed to create output file: {}", e))?;
     }
 
-    let total_files = files.len();
+    // let total_files = files.len();
 
     if dry_run {
-        let mut total_lines = 0usize;
-        for path in &files {
-            let file_name = path.file_name().unwrap_or_default();
-            let line_count = fs::read_to_string(path)
-                .map(|s| s.lines().count())
-                .unwrap_or(0);
-            total_lines += line_count;
-            println!(
-                "[Dry-run]: Would process file: {:?}, {} lines",
-                file_name, line_count
-            );
-        }
-        println!("-------------------------------------------------");
-        println!("Summary (Dry-run):");
-        println!("Total files: {}", total_files);
-        println!("Total lines/events: {}", total_lines);
-        if let Some(ref filter) = event_filter {
-            println!("Filter applied: {}", filter);
-        }
-        println!("Total time: {:.2?}", start_total.elapsed());
-        Ok(())
+        execute_dry_run(&files, &event_filter, quiet_mode)
     } else {
-        let all_events: Vec<GitHubEvent> = files
-            .par_iter()
-            .filter_map(|path| {
-                let file_name = path.file_name().unwrap_or_default();
-                println!("File processing: {:?}", file_name);
-
-                let path_str = path.to_str()?;
-                match receive_all(path_str, event_filter.clone()) {
-                    Ok(events) => {
-                        println!(" -> Success: {} events", events.len());
-                        Some(events)
-                    }
-                    Err(e) => {
-                        eprintln!(" -> Error in file {:?}: {}", file_name, e);
-                        None
-                    }
-                }
-            })
-            .flatten()
-            .collect();
-
-        let total_lines = all_events.len();
-
-        if show_stats && !all_events.is_empty() {
-            let stats = analysis::count_events(&all_events);
-            analysis::print_stats(&stats);
-        }
-
-        if let Some(output) = &output_file {
-            if let Err(e) = save_events(&all_events, output) {
-                eprintln!("Warning: Failed to save events to {}: {}", output, e);
-            }
-        }
-
-        println!("-------------------------------------------------");
-        println!("Summary:");
-        println!("Total files: {}", total_files);
-        println!("Total events processed: {}", total_lines);
-        if let Some(ref filter) = event_filter {
-            println!("Filter applied: {}", filter);
-        }
-        if let Some(ref output) = output_file {
-            println!("Output saved to: {}", output);
-        }
-        println!("Total time: {:.2?}", start_total.elapsed());
-        Ok(())
+        execute_normal_run(&files, &event_filter, show_stats, &output_file, quiet_mode)
     }
 }
 
@@ -149,4 +85,141 @@ pub fn receive_all(
         }
     }
     Ok(results)
+}
+
+fn execute_dry_run(
+    files: &[PathBuf],
+    event_filter: &Option<String>,
+    quiet_mode: bool,
+) -> Result<(), String> {
+    let start = Instant::now();
+    let mut total_lines = 0usize;
+
+    for path in files {
+        let line_count = fs::read_to_string(path)
+            .map(|s| s.lines().count())
+            .unwrap_or(0);
+        total_lines += line_count;
+
+        if !quiet_mode {
+            println!(
+                "[Dry-run]: Would process file: {:?}, {} lines",
+                path.file_name().unwrap_or_default(),
+                line_count
+            );
+        }
+    }
+
+    print_summary_dry_run(files.len(), total_lines, event_filter, start, quiet_mode);
+    Ok(())
+}
+
+fn execute_normal_run(
+    files: &[PathBuf],
+    event_filter: &Option<String>,
+    show_stats: bool,
+    output_file: &Option<String>,
+    quiet_mode: bool,
+) -> Result<(), String> {
+    let start_total = Instant::now();
+    let total_files = files.len();
+
+    let all_events: Vec<GitHubEvent> = files
+        .par_iter()
+        .filter_map(|path| {
+            let file_name = path.file_name().unwrap_or_default();
+
+            if !quiet_mode {
+                println!("File processing: {:?}", file_name);
+            }
+
+            let path_str = path.to_str()?;
+            match receive_all(path_str, event_filter.clone()) {
+                Ok(events) => {
+                    if !quiet_mode {
+                        println!(" -> Success: {} events", events.len());
+                    }
+                    Some(events)
+                }
+                Err(e) => {
+                    eprintln!(" -> Error in file {:?}: {}", file_name, e);
+                    None
+                }
+            }
+        })
+        .flatten()
+        .collect();
+
+    let total_lines = all_events.len();
+
+    if show_stats && !all_events.is_empty() {
+        let stats = analysis::count_events(&all_events);
+        analysis::print_stats(&stats);
+    }
+
+    if let Some(output) = output_file {
+        if let Err(e) = save_events(&all_events, output) {
+            eprintln!("Warning: Failed to save events to {}: {}", output, e);
+        }
+    }
+
+    print_summary_normal_run(
+        total_files,
+        total_lines,
+        event_filter,
+        output_file,
+        start_total,
+        quiet_mode,
+    );
+
+    Ok(())
+}
+
+fn print_summary_normal_run(
+    total_files: usize,
+    total_lines: usize,
+    event_filter: &Option<String>,
+    output_file: &Option<String>,
+    elapsed: Instant,
+    quiet_mode: bool,
+) {
+    if quiet_mode {
+        return;
+    }
+
+    println!("-------------------------------------------------");
+    println!("Summary:");
+    println!("Total files: {}", total_files);
+    println!("Total events processed: {}", total_lines);
+
+    if let Some(filter) = event_filter {
+        println!("Filter applied: {}", filter);
+    }
+
+    if let Some(output) = output_file {
+        println!("Output saved to: {}", output);
+    }
+
+    println!("Total time: {:.2?}", elapsed.elapsed());
+}
+
+fn print_summary_dry_run(
+    total_files: usize,
+    total_lines: usize,
+    event_filter: &Option<String>,
+    elapsed: Instant,
+    quiet_mode: bool,
+) {
+    if quiet_mode {
+        return;
+    }
+    println!("-------------------------------------------------");
+    println!("Summary (Dry-run):");
+    println!("Total files: {}", total_files);
+    println!("Total lines/events: {}", total_lines);
+
+    if let Some(filter) = event_filter {
+        println!("Filter applied: {}", filter);
+    }
+    println!("Total time: {:.2?}", elapsed);
 }

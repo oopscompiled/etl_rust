@@ -26,6 +26,9 @@ struct Cli {
 
     #[arg(short, long, help = "Output file path for results")]
     output: Option<String>,
+
+    #[arg(long, help = "Quiet Mode (suppressing output)")]
+    quiet: bool,
 }
 
 fn main() {
@@ -36,6 +39,7 @@ fn main() {
         show_stats: cli.stats,
         event_type_filter: cli.event_type,
         output_file: cli.output,
+        quiet_mode: cli.quiet,
     };
 
     let start = Instant::now();
